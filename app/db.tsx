@@ -2,7 +2,6 @@ import * as SQLite from 'expo-sqlite';
 
 let db: SQLite.SQLiteDatabase | null = null;
 
-// Initialize the database
 export const initializeDatabase = async (): Promise<void> => {
   if (!db) {
     db = await SQLite.openDatabaseAsync('notes_database.db');
@@ -39,7 +38,6 @@ export const addNote = async (
   return result.lastInsertRowId;
 };
 
-// Fetch all notes
 export const getNotes = async (): Promise<{ id: number; title: string; description: string; color: string }[]> => {
   if (!db) {
     throw new Error('Database not initialized');
@@ -49,7 +47,6 @@ export const getNotes = async (): Promise<{ id: number; title: string; descripti
   return result as { id: number; title: string; description: string; color: string }[];
 };
 
-// Search for notes by title
 export const searchNotes = async (
   query: string
 ): Promise<{ id: number; title: string; description: string; color: string }[]> => {
@@ -61,7 +58,6 @@ export const searchNotes = async (
   return result as { id: number; title: string; description: string; color: string }[];
 };
 
-// Delete a note by ID
 export const deleteNoteById = async (id: number): Promise<void> => {
   if (!db) {
     throw new Error('Database not initialized');
@@ -71,7 +67,6 @@ export const deleteNoteById = async (id: number): Promise<void> => {
   console.log(`Note with ID ${id} deleted`);
 };
 
-// Update a note by ID
 export const updateNoteById = async (
   id: number,
   title: string,

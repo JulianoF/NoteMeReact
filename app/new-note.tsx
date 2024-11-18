@@ -1,27 +1,41 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
-import { initializeDatabase, addNote } from "./db";
+import { initializeDatabase, addNote, updateNoteById } from "./db";
+import { useSearchParams } from "expo-router/build/hooks";
 
 export default function NewNoteScreen() {
   const router = useRouter();
 
-  // States for title, description, and color
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [color, setColor] = useState("#FFFF99"); // Default color: yellow
+  const searchParams = useSearchParams();
+
+  const id = searchParams.get('id');
+  const queryTitle = searchParams.get('qtitle') || "";
+  const queryDescription = searchParams.get('qdescription') || "";
+  const queryColor = searchParams.get('qcolor') || "#FFFF99"; 
+
+  const [title, setTitle] = useState(queryTitle);
+  const [description, setDescription] = useState(queryDescription);
+  const [color, setColor] = useState(queryColor);
 
   useEffect(() => {
     initializeDatabase();
   }, []);
 
-  const saveNote = () => {
+
+  const saveNote = async () => {
     if (title.trim() === "" || description.trim() === "") {
       alert("Please enter a title and description.");
       return;
     }
-    addNote(title, description, color);
-    router.push( '/' );
+    if (id) {
+      await updateNoteById(Number(id), title, description, color);
+    } else {
+
+      await addNote(title, description, color);
+    }
+
+    router.push("/")
   };
 
   const cancel = () => {
@@ -51,19 +65,19 @@ export default function NewNoteScreen() {
 
       <View style={styles.colorButtonsContainer}>
         <TouchableOpacity
-          style={[styles.colorButton, { backgroundColor: "#FFFF99" }]}
+          style={[styles.colorButton, { backgroundColor: "#FFFF99" }]} // yellow
           onPress={() => setColor("#FFFF99")}
         >
           <Text>Yellow</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.colorButton, { backgroundColor: "#99CCFF" }]}
+          style={[styles.colorButton, { backgroundColor: "#99CCFF" }]} // blue
           onPress={() => setColor("#99CCFF")}
         >
           <Text>Blue</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.colorButton, { backgroundColor: "#FF9999" }]}
+          style={[styles.colorButton, { backgroundColor: "#FF9999" }]} // red
           onPress={() => setColor("#FF9999")}
         >
           <Text>Red</Text>
@@ -72,7 +86,7 @@ export default function NewNoteScreen() {
 
       <View style={styles.actionButtonsContainer}>
         <TouchableOpacity style={styles.saveButton} onPress={saveNote}>
-          <Text style={styles.buttonText}>Save Note</Text>
+          <Text style={styles.buttonText}>{id ? "Update Note" : "Save Note"}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.cancelButton} onPress={cancel}>
           <Text style={styles.buttonText}>Cancel</Text>

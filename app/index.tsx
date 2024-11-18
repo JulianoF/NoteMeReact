@@ -7,10 +7,10 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from "react-native";
-import { getNotes, searchNotes, deleteNoteById, initializeDatabase } from "./db"; // Add deleteNoteById
+import { getNotes, searchNotes, deleteNoteById, initializeDatabase } from "./db"; 
 import { useRouter } from "expo-router";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-// Define the Note type
 interface Note {
   id: number;
   title: string;
@@ -19,44 +19,51 @@ interface Note {
 }
 
 export default function HomePage() {
-  const [notes, setNotes] = useState<Note[]>([]); // Notes array is typed as Note[]
-  const [searchQuery, setSearchQuery] = useState<string>(""); // Search query is a string
+  const [notes, setNotes] = useState<Note[]>([]); 
+  const [searchQuery, setSearchQuery] = useState<string>(""); 
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter()
 
 
   useEffect(() => {
-    initializeDatabase();
-    fetchNotes();
+    const setup = async () => {
+      try {
+        await initializeDatabase();
+        await fetchNotes();
+      } catch (error) {
+        console.error("Error during setup:", error);
+      } finally {
+        setIsLoading(false); 
+      }
+    };
+  
+    setup();
   }, []);
 
   const fetchNotes = async () => {
     try {
-      const fetchedNotes = await getNotes(); // Wait for the promise to resolve
-      setNotes(fetchedNotes); // Update the state with the fetched notes
+      const fetchedNotes = await getNotes(); 
+      setNotes(fetchedNotes); 
     } catch (error) {
       console.error("Error fetching notes:", error);
     }
   };
 
   const handleSearch = async (query: string) => {
-    setSearchQuery(query); // Update the search query in state
+    setSearchQuery(query); 
     
     if (query.trim() === "") {
-      // If the query is empty, fetch all notes
       fetchNotes();
     } else {
-      // If there's a search query, search for notes based on the query
       const searchResults = await searchNotes(query);
-      setNotes(searchResults); // Update the state with the search results
+      setNotes(searchResults); 
     }
   };
 
   const handleDelete = async (id: number) => {
     try {
-      // Delete the note from the database
       await deleteNoteById(id);
 
-      // Re-fetch the updated notes list
       fetchNotes();
     } catch (error) {
       console.error("Error deleting note:", error);
@@ -64,8 +71,25 @@ export default function HomePage() {
   };
 
   const handleEdit = (note: Note) => {
-
+    console.log("Sent params:",  note.id.toString(), note.title, note.description, note.color );
+    router.push({
+      pathname: '/new-note',
+      params: {
+        id: note.id.toString(), 
+        qtitle: note.title,
+        qdescription: note.description,
+        qcolor: note.color,
+      },
+    });
   };
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -75,35 +99,39 @@ export default function HomePage() {
         value={searchQuery}
         onChangeText={handleSearch}
       />
-      <FlatList
-        data={notes}
-        keyExtractor={(item) => item.id.toString()} // Use `id` as the unique key
-        renderItem={({ item }) => (
-          <View style={[styles.noteCard, { backgroundColor: item.color }]}>
-            <Text style={styles.noteTitle}>{item.title}</Text>
-            <Text>{item.description}</Text>
-            <View style={styles.buttonRow}>
-              <TouchableOpacity
-                style={[styles.button, styles.editButton]}
-                onPress={() => handleEdit(item)}
-              >
-                <Text style={styles.buttonText}>Edit</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.button, styles.deleteButton]}
-                onPress={() => handleDelete(item.id)}
-              >
-                <Text style={styles.buttonText}>Delete</Text>
-              </TouchableOpacity>
+      {notes.length === 0 ? (
+        <Text style={styles.noNotesText}>No notes available</Text>
+      ) : (
+        <FlatList
+          data={notes}
+          keyExtractor={(item) => item.id.toString()} 
+          renderItem={({ item }) => (
+            <View style={[styles.noteCard, { backgroundColor: item.color }]}>
+              <Text style={styles.noteTitle}>{item.title}</Text>
+              <Text>{item.description}</Text>
+              <View style={styles.buttonRow}>
+                <TouchableOpacity
+                  style={[styles.button, styles.editButton]}
+                  onPress={() => handleEdit(item)}
+                >
+                  <Text style={styles.buttonText}>Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.button, styles.deleteButton]}
+                  onPress={() => handleDelete(item.id)}
+                >
+                  <Text style={styles.buttonText}>Delete</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        )}
-      />
+          )}
+        />
+      )}
       <TouchableOpacity
-        style={styles.newNoteButton}
+        style={styles.fab}
         onPress={() => router.push('/new-note')}
       >
-        <Text style={styles.newNoteText}>New Note</Text>
+        <MaterialCommunityIcons name="plus" size={24} color="white" />
       </TouchableOpacity>
     </View>
   );
@@ -138,4 +166,21 @@ const styles = StyleSheet.create({
   buttonText: { color: "#FFF", fontWeight: "bold" },
   newNoteButton: { backgroundColor: '#6200EE', padding: 16, alignItems: 'center', borderRadius: 8, position: 'absolute', bottom: 16, left: 16, right: 16 },
   newNoteText: { color: 'white', fontWeight: 'bold' },
+  fab: {
+    backgroundColor: '#6200EE',
+    position: 'absolute',
+    bottom: 16,
+    right: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noNotesText: {
+    textAlign: 'center',
+    fontSize: 18,
+    color: '#555',
+    marginTop: 20,
+  },
 });
